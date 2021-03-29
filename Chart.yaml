@@ -13,11 +13,11 @@ home: https://concourse-ci.org/
 sources:
   - https://github.com/concourse/concourse
   - https://github.com/helm/charts
-dependencies:
-  - name: postgresql
-    version: 9.2.0
-    repository: https://charts.bitnami.com/bitnami
-    condition: postgresql.enabled
+#dependencies:
+#  - name: postgresql
+#    version: 9.2.0
+#    repository: https://charts.bitnami.com/bitnami
+#    condition: postgresql.enabled
 maintainers:
   - name: cirocosta
     email: cscosta@pivotal.io
