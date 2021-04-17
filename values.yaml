@@ -21,7 +21,7 @@ image: concourse/concourse
 ##      of `concourse/concourse`.
 ## Ref: https://hub.docker.com/r/concourse/concourse/tags/
 ##
-imageTag: "7.1.0"
+imageTag: "7.2.0"
 
 ## Specific image digest to use in place of a tag.
 ## Ref: https://kubernetes.io/docs/concepts/configuration/overview/#container-images
@@ -949,6 +949,10 @@ concourse:
       ## The value must be specified as Go duration values (e.g.: 30m or 24h).
       duration: 24h
 
+      ## The connector to use for password authentication for `fly login -u ... -p ...`.
+      ## Either "local" or "ldap". Defaults to "local".
+      passwordConnector:
+
       mainTeam:
 
         ## Configuration file for specifying the main teams params.
@@ -1204,6 +1208,10 @@ concourse:
         ## filter as '(<attr>=<username>)'.
         ##
         userSearchUsername:
+
+        ## The prompt when logging in through the UI when concourse.web.auth.passwordConnector is set to "ldap".
+        ## Defaults to 'Username'.
+        usernamePrompt:
 
         ## Can either be: 'sub'  search the whole sub tree or 'one' - only search one level. Defaults to 'sub'.
         ##
@@ -2040,7 +2048,7 @@ web:
       ## When using `web.service.workerGateway.type: ClusterIP`, sets the user-specified cluster IP.
       ## Example: 172.217.1.174
       ##
-      clusterIP: None
+      clusterIP:
 
       ## When using `web.service.workerGateway.type: LoadBalancer`, sets the user-specified load balancer IP.
       ## Example: 172.217.1.174
@@ -2088,6 +2096,31 @@ web:
       ##
       ##
       annotations: {}
+
+      ## For minikube, set this to ClusterIP, elsewhere use LoadBalancer or NodePort
+      ## Ref: https://kubernetes.io/docs/user-guide/services/#publishing-services---service-types
+      ##
+      type: ClusterIP
+
+      ## When using `web.service.prometheus.type: ClusterIP`, sets the user-specified cluster IP.
+      ## Example: 172.217.1.174
+      ##
+      clusterIP:
+
+      ## When using `web.service.prometheus.type: LoadBalancer`, sets the user-specified load balancer IP.
+      ## Example: 172.217.1.174
+      ##
+      loadBalancerIP:
+
+      ## When using `web.service.prometheus.type: LoadBalancer`, restrict access to the load balancer to particular IPs
+      ## Example:
+      ##   - 192.168.1.10/32
+      ##
+      loadBalancerSourceRanges:
+
+      ## When using `web.service.prometheus.type: NodePort`, sets the nodePort
+      ##
+      NodePort:
 
   ## Ingress configuration.
   ## Ref: https://kubernetes.io/docs/user-guide/ingress/
@@ -2410,7 +2443,7 @@ postgresql:
   ## Allows for setting a specific cluster ip for the PostgreSQL
   ## service.
   service:
-    clusterIP: None
+    clusterIP:
 
   ## Persistent Volume Storage configuration for PostgreSQL.
   ##
