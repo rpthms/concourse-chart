@@ -21,7 +21,7 @@ image: concourse/concourse
 ##      of `concourse/concourse`.
 ## Ref: https://hub.docker.com/r/concourse/concourse/tags/
 ##
-imageTag: "7.2.0"
+imageTag: "7.3.1"
 
 ## Specific image digest to use in place of a tag.
 ## Ref: https://kubernetes.io/docs/concepts/configuration/overview/#container-images
@@ -103,6 +103,10 @@ concourse:
     ## By default all volume streming goes through the web nodes.
     ##
     enablep2pVolumeStreaming: false
+
+    ## Enable caching streamed resource volumes on the destination worker.
+    ##
+    enableCacheStreamedVolumes: false
 
     ## Maximum number of jobs to be scheduling at the same time.
     ##
@@ -545,7 +549,7 @@ concourse:
       ## if the Vault authentication backend requires params from secrets, set this to true,
       ## and provide a value in secrets (field `vault-client-auth-param`).
       ##
-      useAuthParam: false
+      useAuthParam:
 
       ## Path to a directory of PEMEncoded CA cert files to verify the vault server SSL cert.
       ##
@@ -670,12 +674,6 @@ concourse:
       ## Example: "web"
       ##
       honeycombDataset:
-
-      ## Name of the service being traced
-      ##
-      ## Example: "concourse"
-      ##
-      honeycombServiceName:
 
       ## OTLP address to send traces to
       ##
@@ -836,9 +834,15 @@ concourse:
         ##     action: labeldrop
         metricRelabelings:
 
-    ## The value to set for X-Frame-Options. If omitted, the header is not set.
+    ## The value to set for X-Frame-Options. If omitted, the default value in
+    ## the Concourse binary is used.
     ##
     xFrameOptions:
+
+    ## The value to set for Content-Security-Policy header. If omitted, the default
+    ## value in the Concourse binary is used.
+    ##
+    contentSecurityPolicy:
 
     gc:
       ## Interval on which to perform garbage collection.
@@ -1649,7 +1653,7 @@ concourse:
       ## Path to a config file to use for the Containerd daemon.
       config:
 
-      ## Enable a proxy DNS server for Garden
+      ## Enable a proxy DNS server for Garden. Note: this implicitly turns on container access to host network.
       dnsProxyEnable:
 
       ## MTU size for container network interfaces. Defaults to the MTU of the interface used for outbound access by the host
@@ -1671,6 +1675,9 @@ concourse:
       ##   - 1.1.1.1
       ##   - 2.2.2.2
       restrictedNetworks: []
+
+      ## Allows containers to reach host network.
+      allowHostAccess:
 
       ## Maximum container capacity. 0 means no limit. Defaults to 250.
       maxContainers:
@@ -1725,7 +1732,7 @@ concourse:
       ## Driver to use for managing volumes.
       ## Possible values: detect, naive, btrfs, and overlay.
       ##
-      driver: naive
+      driver:
 
       ## Path to btrfs binary
       ##
@@ -1829,6 +1836,10 @@ web:
   ##   command: ['sh', '-c', 'echo Hello && sleep 3600']
   ##
   extraInitContainers: []
+
+  ## Pod priority class to assign to web pods.
+  ## Ref: https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#pod-priority
+  priorityClassName:
 
   ## Enable or disable the process namespace sharing for the web nodes.
   ## This allows signaling the concourse process from a sidecar container.
@@ -2138,11 +2149,14 @@ web:
     annotations: {}
 
     ## Hostnames.
-    ## Must be provided if Ingress is enabled.
-    ## Example:
-    ##   - concourse.domain.com
-    ##
+    ## Either `hosts` or `rulesOverride` must be provided if Ingress is enabled.
+    ## `hosts` sets up the Ingress with default rules per provided hostname.
     hosts:
+
+    ## Ingress rules override
+    ## Either `hosts` or `rulesOverride` must be provided if Ingress is enabled.
+    ## `rulesOverride` allows the user to define the full set of ingress rules, for more complex Ingress setups.
+    rulesOverride:
 
     ## TLS configuration.
     ## Secrets must be manually created in the namespace.
@@ -2247,6 +2261,11 @@ worker:
   ##
   keySecretsPath: "/concourse-keys"
 
+  ## For managing where additional certs should be added into a worker.
+  ## You can add additional certs with secrets.workerAdditionalCerts
+  ##
+  certsPath: "/etc/ssl/certs"
+
   ## Configure additional volumeMounts for the
   ## worker container(s)
   ##
@@ -2343,6 +2362,10 @@ worker:
   ##     effect: "NoSchedule"
   ##
   tolerations: []
+
+  ## Pod priority class to assign to worker pods.
+  ## Ref: https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#pod-priority
+  priorityClassName:
 
   ## Time to allow the pod to terminate before being forcefully terminated. This should provide time for
   ## the worker to retire, i.e. drain its tasks. See https://concourse-ci.org/worker-internals.html for worker
@@ -2682,6 +2705,18 @@ secrets:
   workerKeyPub: |-
     ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC496FSYFcBAKgDtMsBAJiF/6/NxlXKP5UZecyEsedYuTt1GOgJTwaA1qZ1LmHsbfLDE68oDdiM4uvxfI4wtLhz57w3u0jOUxZ2JeF7SVwEf1nVqLn4Gh/f8GUNQGSyIp1zUD5Bx9fq0PAyQ47mt7Ufi84rcf8LKl7nzAIHTcdg2BvTkQN9bUGPaq/Pb1W2bKPAQy4OzXTSIyrAJ89TH2jFeaZfyxQFGbD9jVHH/yl0oiMrDeaRYgccE5II+KY7WoLjsBry/9Qf2ERELKTK4UeIGIqWci9lab1ti+GxFPPiC3krNFjo4jShV4eUs4cNIrjwNrxVaKPXmU6o7Y3Hpayx Concourse
 
+  ## Additonal certs to add to a workers certsPath
+  ## Example:
+  ## workerAdditionalCerts: |-
+  ##   -----BEGIN CERTIFICATE-----
+  ##   ....
+  ##   -----END CERTIFICATE-----
+  ##   -----BEGIN CERTIFICATE-----
+  ##   ....
+  ##   -----END CERTIFICATE-----
+  ##   ....
+  #
+  workerAdditionalCerts:
 
   ## Secrets for web interface login
   ##

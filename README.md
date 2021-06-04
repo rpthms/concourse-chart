@@ -87,7 +87,7 @@ The following table lists the configurable parameters of the Concourse chart and
 | `imageDigest` | Specific image digest to use in place of a tag. | `nil` |
 | `imagePullPolicy` | Concourse image pull policy | `IfNotPresent` |
 | `imagePullSecrets` | Array of imagePullSecrets in the namespace for pulling images | `[]` |
-| `imageTag` | Concourse image version | `7.2.0` |
+| `imageTag` | Concourse image version | `7.3.1` |
 | `image` | Concourse image | `concourse/concourse` |
 | `nameOverride` | Provide a name in place of `concourse` for `app:` labels | `nil` |
 | `persistence.enabled` | Enable Concourse persistence using Persistent Volume Claims | `true` |
@@ -173,6 +173,7 @@ The following table lists the configurable parameters of the Concourse chart and
 | `secrets.webTlsCaCert` | TLS CA certificate for the web component to terminate TLS connections | `nil` |
 | `secrets.workerKeyPub` | Concourse Worker Public Key | *See [values.yaml](values.yaml)* |
 | `secrets.workerKey` | Concourse Worker Private Key | *See [values.yaml](values.yaml)* |
+| `secrets.workerAdditionalCerts` | Concourse Worker Additional Certificates | *See [values.yaml](values.yaml)* |
 | `web.additionalAffinities` | Additional affinities to apply to web pods. E.g: node affinity | `{}` |
 | `web.additionalVolumeMounts` | VolumeMounts to be added to the web pods | `nil` |
 | `web.additionalVolumes` | Volumes to be added to the web pods | `nil` |
@@ -191,6 +192,7 @@ The following table lists the configurable parameters of the Concourse chart and
 | `web.ingress.annotations` | Concourse Web Ingress annotations | `{}` |
 | `web.ingress.enabled` | Enable Concourse Web Ingress | `false` |
 | `web.ingress.hosts` | Concourse Web Ingress Hostnames | `[]` |
+| `web.ingress.rulesOverride` | Concourse Web Ingress rules (override) (alternate to `web.ingress.hosts`) | `[]` |
 | `web.ingress.tls` | Concourse Web Ingress TLS configuration | `[]` |
 | `web.keySecretsPath` | Specify the mount directory of the web keys secrets | `/concourse-keys` |
 | `web.labels`| Additional labels to be added to the worker pods | `{}` |
@@ -234,6 +236,7 @@ The following table lists the configurable parameters of the Concourse chart and
 | `web.service.prometheus.annotations` | Concourse Web Prometheus Service annotations | `nil` |
 | `web.service.prometheus.labels` | Additional concourse web prometheus service labels | `nil` |
 | `web.shareProcessNamespace` | Enable or disable the process namespace sharing for the web nodes | `false` |
+| `web.priorityClassName` | Sets a PriorityClass for the web pods | `nil` |
 | `web.sidecarContainers` | Array of extra containers to run alongside the Concourse web container | `nil` |
 | `web.extraInitContainers` | Array of extra init containers to run before the Concourse web container | `nil` |
 | `web.strategy` | Strategy for updates to deployment. | `{}` |
@@ -253,6 +256,7 @@ The following table lists the configurable parameters of the Concourse chart and
 | `worker.hardAntiAffinity` | Should the workers be forced (as opposed to preferred) to be on different nodes? | `false` |
 | `worker.hardAntiAffinityLabels` | Set of labels used for hard anti affinity rule | `{}` |
 | `worker.keySecretsPath` | Specify the mount directory of the worker keys secrets | `/concourse-keys` |
+| `worker.certsPath` | Specify the path for additional worker certificates | `/etc/ssl/certs` |
 | `worker.kind` | Choose between `StatefulSet` to preserve state or `Deployment` for ephemeral workers | `StatefulSet` |
 | `worker.livenessProbe.failureThreshold` | Minimum consecutive failures for the probe to be considered failed after having succeeded | `5` |
 | `worker.livenessProbe.httpGet.path` | Path to access on the HTTP server when performing the healthcheck | `/` |
@@ -270,6 +274,7 @@ The following table lists the configurable parameters of the Concourse chart and
 | `worker.resources.requests.memory` | Minimum amount of memory resources requested | `512Mi` |
 | `worker.sidecarContainers` | Array of extra containers to run alongside the Concourse worker container | `nil` |
 | `worker.extraInitContainers` | Array of extra init containers to run before the Concourse worker container | `nil` |
+| `worker.priorityClassName` | Sets a PriorityClass for the worker pods | `nil` |
 | `worker.terminationGracePeriodSeconds` | Upper bound for graceful shutdown to allow the worker to drain its tasks | `60` |
 | `worker.tolerations` | Tolerations for the worker nodes | `[]` |
 | `worker.updateStrategy` | `OnDelete` or `RollingUpdate` (requires Kubernetes >= 1.7) | `RollingUpdate` |
@@ -282,6 +287,7 @@ The following table lists the configurable parameters of the Concourse chart and
 | `worker.containerd.maxContainers` | Max container capacity where 0 means no limit | `nil` |
 | `worker.containerd.networkPool` | Network range to use for dynamically allocated container subnets | `nil` |
 | `worker.containerd.requestTimeout` | Time to wait for requests to Containerd to complete | `nil` |
+| `worker.containerd.allowHostAccess` | Allows containers to reach host network | `false` |
 
 For configurable Concourse parameters, refer to [`values.yaml`](values.yaml)' `concourse` section. All parameters under this section are strictly mapped from the `concourse` binary commands.
 
@@ -468,10 +474,29 @@ web:
     enabled: true
 
     ## Hostnames.
-    ## Must be provided if Ingress is enabled.
+    ## Either `hosts` or `rulesOverride` must be provided if Ingress is enabled.
+    ## `hosts` sets up the Ingress with default rules per provided hostname.
     ##
     hosts:
       - concourse.domain.com
+
+    ## Ingress rules override
+    ## Either `hosts` or `rulesOverride` must be provided if Ingress is enabled.
+    ## `rulesOverride` allows the user to define the full set of ingress rules, for more complex Ingress setups.
+    ##
+    ##
+    rulesOverride:
+      - host: concourse.domain.com
+        http:
+          paths:
+            - path: '/*'
+              backend:
+                serviceName: "ssl-redirect"
+                servicePort: "use-annotation"
+            - path: '/*'
+              backend:
+                serviceName: "concourse-web"
+                servicePort: atc
 
     ## TLS configuration.
     ## Secrets must be manually created in the namespace.
