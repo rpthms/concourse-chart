@@ -21,7 +21,7 @@ image: concourse/concourse
 ##      of `concourse/concourse`.
 ## Ref: https://hub.docker.com/r/concourse/concourse/tags/
 ##
-imageTag: "7.5.0"
+imageTag: "7.7.0"
 
 ## Specific image digest to use in place of a tag.
 ## Ref: https://kubernetes.io/docs/concepts/configuration/overview/#container-images
@@ -73,6 +73,24 @@ concourse:
     ## Example: 10s
     ##
     componentRunnerInterval:
+
+    ## Default timeout of a get step.
+    ##
+    ## Example: 10m
+    ##
+    defaultGetTimeout:
+
+    ## Default timeout of a put step.
+    ##
+    ## Example: 30m
+    ##
+    defaultPutTimeout:
+
+    ## Default timeout of a task step.
+    ##
+    ## Example: 8h
+    ##
+    defaultTaskTimeout:
 
     ## The maximum number of open connections for the API connection pool.
     ##
@@ -394,6 +412,13 @@ concourse:
     ##
     defaultTaskMemoryLimit:
 
+    ## The number of days after which a pipeline will be automatically paused #
+    ## if none of its jobs have run in less than the given number of days. A #
+    ## value of zero disables this component. If not set the component is
+    ## disabled by default.
+    ##
+    pausePipelinesAfter:
+
     ## Network address of this web node, reachable by other web nodes. Used for forwarded worker addresses. (default: $POD_IP)
     ##
     peerAddress:
@@ -483,6 +508,10 @@ concourse:
       ## team-specific template for Secrets Manager parameters, defaults to: /concourse/{{.Team}}/{{.Secret}}
       ##
       teamSecretTemplate: /concourse/{{.Team}}/{{.Secret}}
+
+      ## top level template for Secrets Manager shared parameters, defaults to: /concourse/{{.Secret}}
+      ##
+      sharedSecretTemplate: /concourse/{{.Secret}}
 
     ## Configuration for using AWS SSM as a credential manager.
     ## Ref: https://concourse-ci.org/creds.html#ssm
@@ -1439,6 +1468,13 @@ concourse:
         ##
         userNameKey: username
 
+        ## Comma separated list of whitelisted domains when using Google
+        ## If this field is nonempty, only users from a listed domain will be allowed to log in
+        ## For example,
+        ## hostedDomains: domain.com,domain2.com,domain3.com
+        ##
+        hostedDomains:
+
         ## Disable OIDC groups claim fetching
         ##
         disableGroups:
@@ -1794,6 +1830,72 @@ concourse:
       ##
       p2pInterfaceNamePattern:
 
+    tracing:
+      ## Service name to attach to traces as metadata.
+      #
+      ## Example: "worker"
+      ##
+      serviceName:
+
+      ## Attributes to attach to traces as metadata.
+      #
+      ## Example:
+      ##   environment: ci
+      ##
+      attributes:
+
+      ## Jaeger's HTTP-based Thrift collector endpoint.
+      #
+      ## Example: "http://jaeger:14268/api/traces"
+      ##
+      jaegerEndpoint:
+
+      ## Tags to include to components
+      ##
+      ## Example: "foo:bar,caz:zaz"
+      ##
+      jaegerTags:
+
+      ## Name of the service being traced
+      ##
+      ## Example: "worker"
+      ##
+      jaegerService:
+
+      ## GCP's Project ID
+      ##
+      ## Example: "my-projectid"
+      ##
+      stackdriverProjectId:
+
+      ## Honeycomb.io API Key
+      ##
+      honeycombApiKey:
+
+      ## Name of dataset
+      ##
+      ## Example: "web"
+      ##
+      honeycombDataset:
+
+      ## OTLP address to send traces to
+      ##
+      ## Example: "otel-collector:55680"
+      ##
+      otlpAddress:
+
+      ## Headers to attach to each tracing message
+      ##
+      ## Example:
+      ##   lightstep-access-token: mysupersecrettoken
+      ##
+      otlpHeaders:
+
+      ## Whether to use TLS for the OTLP connection
+      ##
+      otlpUseTls:
+
+
     ## Enable Horizontal Pod Autoscaling
     ## to use this, ephemeral worker with
     ## worker.kind: Deployment is recommended
@@ -1810,6 +1912,16 @@ concourse:
       # for this to work you need to configure the metric eg. with prometheus adapter
 #      maxReplicas: 1
 #      minReplicas: 1
+#      behavior:
+#        scaleDown:
+#          stabilizationWindowSeconds: 1200
+#            selectPolicy: Min
+#            policies:
+#              - type: Percent
+#                value: 10
+#                periodSeconds: 300
+#        scaleUp:
+#          stabilizationWindowSeconds: 60
 #      builtInMetrics:
 #        - type: Resource
 #          resource:
